@@ -7,8 +7,8 @@ const heuristicPButton = document.querySelector("#heuristicP");
 
 let lastMove = [];
 
-heuristicOneButton.addEventListener("click", () => {
-    mixSquaresRandom();
+heuristicOneButton.addEventListener("click", async () => {
+    await mixSquaresRandom();
     heuristicOne();
 });
 heuristicTwoButton.addEventListener("click", () => {
@@ -33,6 +33,21 @@ let positionSquares;
 let y;
 let x;
 
+const matrizResult = [
+    [1, 2, 3], [4, 5, 6], [7, 8, 9]
+];
+
+function checkSucess() {
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+            if (matrizResult[i][j] !== matriz[i][j]) return false;
+        }
+    }
+
+    return true;
+}
+
+
 function heuristicOne() {
 
 }
@@ -46,31 +61,6 @@ function heuristicP() {
 }
 
 
-function init() {
-    matriz = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]
-    ];
-
-    matrizSquares = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]
-    ];
-
-    positionSquares = [
-        [1, 2, 3],
-        [4, 5, 6],
-        [7, 8, 9]
-    ];
-
-    y = 2; //terceira linha 
-    x = 2; //terceira coluna
-
-    renderBoard();
-}
-
 //função de delay para conseguir visualizar a movimentação dos quadrados
 function delay(milliseconds) {
     return new Promise(resolve => {
@@ -79,18 +69,15 @@ function delay(milliseconds) {
 }
 
 //Mover o quadrado 9 (quadrado vazio) para uma nova posição 
-//Troca o quadrado 9 pelo quadrado na posição newy newx
 function moveSquare(newy, newx) {
 
-    //movendo quadrado 9 para posição do seu vizinho
+    //movendo quadrado 9 para posição do seu vizinho na interface
     matrizSquares[y][x].style.left = `${(150) * (newx - x) + positionSquares[y][x].x}px`;
     matrizSquares[y][x].style.top = `${(150) * (newy - y) + positionSquares[y][x].y}px`;
 
-    //movendo quadrado vizinho para onde estava o quadrado 9
+    //movendo quadrado vizinho para onde estava o quadrado 9 na interface
     matrizSquares[newy][newx].style.left = `${(150) * (x - newx) + positionSquares[newy][newx].x}px`;
     matrizSquares[newy][newx].style.top = `${(150) * (y - newy) + positionSquares[newy][newx].y}px`;
-
-
 
     //atualizando matriz de acesso aos quadrados 
     const aux = matrizSquares[y][x]
@@ -100,6 +87,10 @@ function moveSquare(newy, newx) {
     //atualizando matriz numérica para as heuristicas
     matriz[y][x] = matriz[newy][newx];
     matriz[newy][newx] = 9;
+
+    //atualizando posição do quadrado 9
+    y = newy;
+    x = newx;
 }
 
 //Função para verificar loops nas jogadas
@@ -131,10 +122,8 @@ function loop() {
     return false;
 }
 
-
-//função que escolhe um vizinho aleatório do quadrado 9 para mover
-function randomNeighbor() {
-
+//função para pegar todos os vizinhos-4 do quadrado 9
+function getNeighbors() {
     //armazenar seus vizinhos
     //o quadrado 9 só pode se mover (trocar de lugar) com um vizinho-4
     let neighbors = [];
@@ -192,6 +181,14 @@ function randomNeighbor() {
             { 'y': y, 'x': x + 1 });
     }
 
+    return neighbors;
+}
+
+//função que escolhe um vizinho aleatório do quadrado 9 para mover
+function randomNeighbor() {
+
+    let neighbors = getNeighbors();
+
     //escolhendo um vizinho aleatório
     let neighbor = Math.floor(Math.random() * ((neighbors.length - 1) - 0) + 0);
 
@@ -215,10 +212,6 @@ function randomNeighbor() {
 
     //movendo quadrado 9 para a posição do seu vizinho
     moveSquare(neighbors[neighbor].y, neighbors[neighbor].x);
-
-    //atualizando posição do quadrado 9
-    y = neighbors[neighbor].y;
-    x = neighbors[neighbor].x;
 }
 
 //função para embaralhar quadrados aleatóriamente
@@ -245,13 +238,14 @@ async function mixSquaresRandom() {
     }
 }
 
-
 //Desenhando tabuleiro 
 function renderBoard() {
 
     board.innerHTML = "";
-    for (i = 0; i < matriz.length; i++) {
-        for (j = 0; j < matriz[i].length; j++) {
+
+    for (i = 0; i < 3; i++) {
+        for (j = 0; j < 3; j++) {
+
             const htmlSquare = document.createElement('div');
             htmlSquare.innerHTML = matriz[i][j];
 
@@ -274,6 +268,19 @@ function renderBoard() {
             board.appendChild(htmlSquare);
         }
     }
+}
+
+function init() {
+    matriz = [[1, 2, 3], [4, 5, 6], [7, 8, 9]];
+
+    matrizSquares = [[], [], []];
+
+    positionSquares = [[], [], []];
+
+    y = 2; //terceira linha 
+    x = 2; //terceira coluna
+
+    renderBoard();
 }
 
 init();
