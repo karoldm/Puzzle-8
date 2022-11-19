@@ -202,8 +202,9 @@ function randomNeighbor() {
         //removendo vizinho já que ele mover para ele levará a um loop
         neighbors = neighbors.filter((e) => e !== neighbor);
 
-        //removendo ultimo movimento já que ele levará a um loop
-        lastMove.pop();
+        //numero máximo de movimentos verificados é 6, logo a partir de 12 podemos limpar os movimentos 
+        if (lastMove.length === 12) lastMove = [];
+        else lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
 
         //escolhendo um vizinho aleatório
         neighbor = Math.floor(Math.random() * (neighbors.length));
