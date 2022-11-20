@@ -9,7 +9,7 @@ let lastMove = [];
 
 heuristicOneButton.addEventListener("click", async () => {
     await mixSquaresRandom();
-    heuristicOne();
+    await heuristicOne();
 });
 heuristicTwoButton.addEventListener("click", () => {
     mixSquaresRandom();
@@ -21,22 +21,23 @@ heuristicPButton.addEventListener("click", () => {
 });
 
 //matriz para calcular heuristicas
-let matriz;
+var matriz;
 
 //matriz para acessar os quadradinhos do tabuleiro
-let matrizSquares;
+var matrizSquares;
 
 //matriz para controlar posição dos quadradinhos do tabuleiro
-let positionSquares;
+var positionSquares;
 
 //posição do quadrado 9 na matriz inicialmente
-let y;
-let x;
+var y;
+var x;
 
 const matrizResult = [
     [1, 2, 3], [4, 5, 6], [7, 8, 9]
 ];
 
+// Função para verificar se quadrados do tabuleiro estão nas posições corretas
 function checkSucess() {
     for (i = 0; i < 3; i++) {
         for (j = 0; j < 3; j++) {
@@ -47,9 +48,93 @@ function checkSucess() {
     return true;
 }
 
+/**
+ * Função para escolher melhor movimento entre os vizinhos-4 do quadrado 9
+ * A melhor joagada é escolhida calculando a soma da diferença dos quadrados com suas posições corretas 
+ * A jogada que tiver a menor soma (ou seja, que levar os quadrados o mais próximo possível da sua posição
+ * final) é retornada.
+ * Em caso de somas iguais para dois estados/filhos, retorna o primeiro encontrado
+ */
+function getBestChild(neighbors) {
+    let sum;
+    let minSum = 200;
+    let best = neighbors[0];
 
-function heuristicOne() {
+    // Percorre cada joagada possível
+    for (n in neighbors) {
+        sum = 0;
 
+        // Soma da diferença de cada quadrado com sua posição final
+        for (i = 0; i < 3; i++) {
+            for (j = 0; j < 3; j++) {
+
+                if (i === neighbors[n].y && j === neighbors[n].x) {
+                    sum += Math.abs(matrizResult[i][j] - 9);
+                }
+                else if (i === y && j === x) {
+                    sum += Math.abs(matrizResult[i][j] - matriz[neighbors[n].y][neighbors[n].x]);
+                }
+                else {
+                    sum += Math.abs(matrizResult[i][j] - matriz[i][j]);
+                }
+            }
+        }
+
+        // console.log("n ", neighbors[n]);
+        // console.log("s ", sum, "\n\n\n");
+
+        if (sum < minSum) {
+            minSum = sum;
+            best = neighbors[n];
+        }
+    }
+
+    return best;
+}
+
+// Função para Heurística de um nível (verificar somente os filhos a um nível do estado atual)
+async function heuristicOne() {
+    alert('Iniciano heuristica de um nível!');
+
+    lastMove = [];
+    let qtdMov = 0;
+
+    //Enquanto a mtriz atual não for o resultado esperado
+    while (!checkSucess() && qtdMov < 500) {
+
+        let neighbors = getNeighbors();
+        let best = getBestChild(neighbors);
+
+        lastMove.push(matriz[best.y][best.x]);
+
+        //evitando jogadas repetidas
+        while (loop() && neighbors.length > 0) {
+            //removendo vizinho já que mover para ele levara a um loop
+            neighbors = neighbors.filter((e) => e !== best);
+
+            if (neighbors.length === 0) {
+
+                break;
+            }
+
+            lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
+
+            best = getBestChild(neighbors);
+
+            //armazenando ultimos movimentos para identificar loops nos movimentos
+            lastMove.push(matriz[best.y][best.x]);
+        }
+
+        moveSquare(best.y, best.x);
+
+        //esperando movimento
+        await delay(700);
+
+        qtdMov++;
+    }
+
+    if (qtdMov === 500) alert("Solução não encontrada! máximo de 200 movimentos alcançado.");
+    else alert(`Resultado encontrado depois de ${qtdMov} movimentos!`);
 }
 
 function heuristicTwo() {
@@ -91,31 +176,35 @@ function moveSquare(newy, newx) {
     //atualizando posição do quadrado 9
     y = newy;
     x = newx;
+
 }
 
 //Função para verificar loops nas jogadas
 function loop() {
 
-    if (lastMove.length === 0 || lastMove.length === 1) return false;
+    console.log(lastMove)
 
-    if (lastMove[lastMove.length - 1] === lastMove[lastMove.length - 2]) return true;
+    if (lastMove.length > 1
+        && lastMove[lastMove.length - 1] === lastMove[lastMove.length - 2]) return true;
+    if (lastMove.length < 4) return false;
 
     let subMovs1;
     let subMovs2;
 
-    for (jump = 2; jump < 6; jump++) {
+
+    for (jump = 2; jump <= 6; jump++) {
+
         subMovs1 = lastMove.slice(0, jump).join('');
-        for (i = jump; i < lastMove.length; i++) {
-            //[1, 2, 1, 2, 1, 2]
-            //jump = 2
-            //subMovs1 = 12 --> lastMove[0], lastMove[1]
-            //subMovs2 = 12 --> lastMove[2], lastMove[3]
-            //if(subMovs1 === subMovs2) return true
+
+        for (i = jump; i < lastMove.length && lastMove.length >= 2 * jump; i++) {
 
             subMovs2 = lastMove.slice(i, i + jump).join('');
 
+            if (subMovs1.length !== subMovs2.length) break;
+
             if (subMovs1 === subMovs2) return true;
-            subMovs1 = subMovs2;
+
+            subMovs1 = lastMove.slice(i - (jump - 1), i + jump - (jump - 1)).join('');
         }
     }
 
@@ -199,9 +288,7 @@ function randomNeighbor() {
         //removendo vizinho já que ele mover para ele levará a um loop
         neighbors = neighbors.filter((e) => e !== neighbor);
 
-        //numero máximo de movimentos verificados é 6, logo a partir de 12 podemos limpar os movimentos 
-        if (lastMove.length === 12) lastMove = [];
-        else lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
+        lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
 
         //escolhendo um vizinho aleatório
         neighbor = Math.floor(Math.random() * (neighbors.length));
@@ -225,13 +312,14 @@ async function mixSquaresRandom() {
     cont = 0;
 
     init();
-    await delay(1000);
+    await delay(700);
 
     while (cont < n) {
 
         randomNeighbor();
-        //esperando movimento
-        await delay(1000);
+
+        //esperando movimento 
+        await delay(700);
 
         cont++;
 
