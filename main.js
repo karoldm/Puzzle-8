@@ -5,7 +5,6 @@ const heuristicOneButton = document.querySelector("#heuristic01");
 const heuristicTwoButton = document.querySelector("#heuristic02");
 const heuristicPButton = document.querySelector("#heuristicP");
 
-let lastMove = [];
 
 heuristicOneButton.addEventListener("click", async () => {
     await mixSquaresRandom();
@@ -19,6 +18,9 @@ heuristicPButton.addEventListener("click", async () => {
     await mixSquaresRandom();
     await heuristicP();
 });
+
+//array para armazenar ultimos movimentos e verificar se há loops
+let lastMove = [];
 
 //matriz para calcular heuristicas
 var matriz;
@@ -129,6 +131,9 @@ async function heuristicOne() {
             lastMove.push(matriz[best.y][best.x]);
         }
 
+        //só verificamos loops até seis movimentos
+        //ou seja, comparamos os seis primeiros com os seis últimos
+        //logo quando atingimos mais de 12 movimentos podemos zerar o array
         if (lastMove.length >= 13) lastMove = [];
 
         moveSquare(best.y, best.x);
@@ -311,7 +316,7 @@ function getBestChildP(neighbors) {
 }
 
 async function heuristicP() {
-    alert('Iniciano heuristica baseada na');
+    alert('Iniciano heuristica baseada na quantidade de quadrados fora do lugar no segundo nível');
 
     lastMove = [];
     let qtdMov = 0;
