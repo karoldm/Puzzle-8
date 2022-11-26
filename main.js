@@ -11,9 +11,9 @@ heuristicOneButton.addEventListener("click", async () => {
     await mixSquaresRandom();
     await heuristicOne();
 });
-heuristicTwoButton.addEventListener("click", () => {
-    mixSquaresRandom();
-    heuristicTwo();
+heuristicTwoButton.addEventListener("click", async () => {
+    await mixSquaresRandom();
+    await heuristicTwo();
 });
 heuristicPButton.addEventListener("click", () => {
     mixSquaresRandom();
@@ -80,9 +80,6 @@ function getBestChild(neighbors) {
             }
         }
 
-        // console.log("n ", neighbors[n]);
-        // console.log("s ", sum, "\n\n\n");
-
         if (sum < minSum) {
             minSum = sum;
             best = neighbors[n];
@@ -94,26 +91,31 @@ function getBestChild(neighbors) {
 
 // Função para Heurística de um nível (verificar somente os filhos a um nível do estado atual)
 async function heuristicOne() {
-    alert('Iniciano heuristica de um nível!');
+    alert('Iniciano heuristica de nível um!');
 
     lastMove = [];
     let qtdMov = 0;
 
     //Enquanto a mtriz atual não for o resultado esperado
-    while (!checkSucess() && qtdMov < 500) {
+    while (!checkSucess() && qtdMov < 100) {
 
-        let neighbors = getNeighbors();
+        let neighbors = getNeighbors({ 'y': y, 'x': x });
+
         let best = getBestChild(neighbors);
+
+        const neighborAux = neighbors.slice();
 
         lastMove.push(matriz[best.y][best.x]);
 
         //evitando jogadas repetidas
-        while (loop() && neighbors.length > 0) {
+        while (loop()) {
             //removendo vizinho já que mover para ele levara a um loop
             neighbors = neighbors.filter((e) => e !== best);
 
+            //se todos os vizinhos levam a um loop, escolhemos um aleatório
             if (neighbors.length === 0) {
-
+                const randomBest = Math.floor(Math.random() * (neighborAux.length - 1));
+                best = neighborAux[randomBest];
                 break;
             }
 
@@ -125,6 +127,8 @@ async function heuristicOne() {
             lastMove.push(matriz[best.y][best.x]);
         }
 
+        if (lastMove.length >= 13) lastMove = [];
+
         moveSquare(best.y, best.x);
 
         //esperando movimento
@@ -133,18 +137,115 @@ async function heuristicOne() {
         qtdMov++;
     }
 
-    if (qtdMov === 500) alert("Solução não encontrada! máximo de 200 movimentos alcançado.");
+    if (qtdMov >= 100) alert("Solução não encontrada, máximo de 100 movimentos!");
     else alert(`Resultado encontrado depois de ${qtdMov} movimentos!`);
 }
 
-function heuristicTwo() {
+/**
+* Função para encotnrar a melhor jogada em dois níveis 
+* Para cada vizinho explorado, trocamos o quadrado vazio por ele e pegamos seus novos vizinhos
+* Calculamos a distância até o resultado e selecionamos o vizinho com a menor distância 
+* Se os filhos do nó atual sao a) e b), e os filhos de a) e b) são c), d) e e), f), respectivamente
+* Então se c) ou d) tem a menor distância, escolhemos o nó a), caso e) ou f) tenham a menor distância
+* escolhemos o nó b).
+*/
+function getBestChildTwo(neighbors) {
+    let sum;
+    let minSum = 200;
+    let best = neighbors[0];
 
+    let copyMatriz = matriz.map(e => e.slice());
+
+    //para cada vizinho do nó atual
+    for (n in neighbors) {
+        //pegamos os vizinhos desse nó caso ele tenha sido movido 
+        let neighborsTwo = getNeighbors({ 'y': neighbors[n].y, 'x': neighbors[n].x })
+
+        //Percorre cada joagada possível no segundo nivel
+        for (n2 in neighborsTwo) {
+            sum = 0;
+
+            // Soma da diferença de cada quadrado com sua posição final
+            for (i = 0; i < 3; i++) {
+                for (j = 0; j < 3; j++) {
+
+                    if (i === neighborsTwo[n2].y && j === neighborsTwo[n2].x) {
+                        sum += Math.abs(matrizResult[i][j] - 9);
+                    }
+                    else if (i === y && j === x) {
+                        sum += Math.abs(matrizResult[i][j] - copyMatriz[neighborsTwo[n2].y][neighborsTwo[n2].x]);
+                    }
+                    else {
+                        sum += Math.abs(matrizResult[i][j] - copyMatriz[i][j]);
+                    }
+                }
+            }
+
+            if (sum < minSum) {
+                minSum = sum;
+                //escolhemos o nó do primeiro nível que leve ao nó do segundo nível com a menor soma
+                best = neighbors[n];
+            }
+        }
+    }
+
+    return best;
+}
+
+async function heuristicTwo() {
+    alert('Iniciano heuristica de nível dois!');
+
+    lastMove = [];
+    let qtdMov = 0;
+
+    //Enquanto a mtriz atual não for o resultado esperado
+    while (!checkSucess() && qtdMov < 100) {
+
+        let neighbors = getNeighbors({ 'y': y, 'x': x });
+
+        let best = getBestChildTwo(neighbors);
+
+        const neighborAux = neighbors.slice();
+
+        lastMove.push(matriz[best.y][best.x]);
+
+        //evitando jogadas repetidas
+        while (loop()) {
+            //removendo vizinho já que mover para ele levara a um loop
+            neighbors = neighbors.filter((e) => e !== best);
+
+            //se todos os vizinhos levam a um loop, escolhemos um aleatório
+            if (neighbors.length === 0) {
+                const randomBest = Math.floor(Math.random() * (neighborAux.length - 1));
+                best = neighborAux[randomBest];
+                break;
+            }
+
+            lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
+
+            best = getBestChildTwo(neighbors);
+
+            //armazenando ultimos movimentos para identificar loops nos movimentos
+            lastMove.push(matriz[best.y][best.x]);
+        }
+
+        if (lastMove.length >= 13) lastMove = [];
+
+        moveSquare(best.y, best.x);
+
+        //esperando movimento
+        await delay(700);
+
+        qtdMov++;
+    }
+
+    if (qtdMov >= 100) alert("Solução não encontrada, máximo de 100 movimentos!");
+    else alert(`Resultado encontrado depois de ${qtdMov} movimentos!`);
 }
 
 function heuristicP() {
 
 }
-
 
 //função de delay para conseguir visualizar a movimentação dos quadrados
 function delay(milliseconds) {
@@ -182,10 +283,9 @@ function moveSquare(newy, newx) {
 //Função para verificar loops nas jogadas
 function loop() {
 
-    console.log(lastMove)
-
     if (lastMove.length > 1
         && lastMove[lastMove.length - 1] === lastMove[lastMove.length - 2]) return true;
+
     if (lastMove.length < 4) return false;
 
     let subMovs1;
@@ -204,7 +304,7 @@ function loop() {
 
             if (subMovs1 === subMovs2) return true;
 
-            subMovs1 = lastMove.slice(i - (jump - 1), i + jump - (jump - 1)).join('');
+            subMovs1 = lastMove.slice(i - jump + 1, i + 1).join('');
         }
     }
 
@@ -212,62 +312,62 @@ function loop() {
 }
 
 //função para pegar todos os vizinhos-4 do quadrado 9
-function getNeighbors() {
+function getNeighbors({ 'y': cy, 'x': cx }) {
     //armazenar seus vizinhos
     //o quadrado 9 só pode se mover (trocar de lugar) com um vizinho-4
     let neighbors = [];
 
     //verificando posição atual do quadrado 9 e armazenando a posição dos seus vizinhos
-    if (y == 2 && x == 2) {
+    if (cy == 2 && cx == 2) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y, 'x': x - 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 });
     }
-    else if (y == 2 && x == 1) {
+    else if (cy == 2 && cx == 1) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y, 'x': x - 1 },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 },
+            { 'y': cy, 'x': cx + 1 });
     }
-    else if (y == 2 && x == 0) {
+    else if (cy == 2 && cx == 0) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy, 'x': cx + 1 });
     }
-    else if (y == 1 && x == 2) {
+    else if (cy == 1 && cx == 2) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x - 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 });
     }
-    else if (y == 1 && x == 1) {
+    else if (cy == 1 && cx == 1) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x - 1 },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 },
+            { 'y': cy, 'x': cx + 1 });
     }
-    else if (y == 1 && x == 0) {
+    else if (cy == 1 && cx == 0) {
         neighbors.push(
-            { 'y': y - 1, 'x': x },
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy - 1, 'x': cx },
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx + 1 });
     }
-    else if (y == 0 && x == 2) {
+    else if (cy == 0 && cx == 2) {
         neighbors.push(
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x - 1 });
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 });
     }
-    else if (y == 0 && x == 1) {
+    else if (cy == 0 && cx == 1) {
         neighbors.push(
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x - 1 },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx - 1 },
+            { 'y': cy, 'x': cx + 1 });
     }
-    else if (y == 0 && x == 0) {
+    else if (cy == 0 && cx == 0) {
         neighbors.push(
-            { 'y': y + 1, 'x': x },
-            { 'y': y, 'x': x + 1 });
+            { 'y': cy + 1, 'x': cx },
+            { 'y': cy, 'x': cx + 1 });
     }
 
     return neighbors;
@@ -276,17 +376,24 @@ function getNeighbors() {
 //função que escolhe um vizinho aleatório do quadrado 9 para mover
 function randomNeighbor() {
 
-    let neighbors = getNeighbors();
+    let neighbors = getNeighbors({ 'y': y, 'x': x });
 
     //escolhendo um vizinho aleatório
-    let neighbor = Math.floor(Math.random() * ((neighbors.length - 1) - 0) + 0);
+    let neighbor = Math.floor(Math.random() * (neighbors.length - 1));
 
     //armazenando ultimos movimentos para identificar loops nos movimentos
     lastMove.push(matriz[neighbors[neighbor].y][neighbors[neighbor].x]);
 
+    const auxNeighbors = neighbors.slice();
+
     while (loop()) {
         //removendo vizinho já que ele mover para ele levará a um loop
         neighbors = neighbors.filter((e) => e !== neighbor);
+
+        if (neighbors.length === 0) {
+            best = auxNeighbors[Math.floor(Math.random() * (auxNeighbors.length - 1))];
+            break;
+        }
 
         lastMove.pop(); //removendo ultimo movimento já que ele levará a um loop
 
@@ -299,6 +406,7 @@ function randomNeighbor() {
 
     //movendo quadrado 9 para a posição do seu vizinho
     moveSquare(neighbors[neighbor].y, neighbors[neighbor].x);
+    if (lastMove.length >= 12) lastMove = [];
 }
 
 //função para embaralhar quadrados aleatóriamente
