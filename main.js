@@ -9,31 +9,36 @@ const heuristicPButton = document.querySelector("#heuristicP");
 heuristicOneButton.addEventListener("click", async () => {
     await mixSquaresRandom();
     await heuristicOne();
+    init();
 });
 heuristicTwoButton.addEventListener("click", async () => {
     await mixSquaresRandom();
     await heuristicTwo();
+    init();
+
 });
 heuristicPButton.addEventListener("click", async () => {
     await mixSquaresRandom();
     await heuristicP();
+    init();
+
 });
 
 //array para armazenar ultimos movimentos e verificar se há loops
 let lastMove = [];
 
 //matriz para calcular heuristicas
-var matriz;
+// let matriz;
 
 //matriz para acessar os quadradinhos do tabuleiro
-var matrizSquares;
+let matrizSquares;
 
 //matriz para controlar posição dos quadradinhos do tabuleiro
-var positionSquares;
+let positionSquares;
 
 //posição do quadrado 9 na matriz inicialmente
-var y;
-var x;
+let y;
+let x;
 
 const matrizResult = [
     [1, 2, 3], [4, 5, 6], [7, 8, 9]
@@ -134,9 +139,14 @@ async function heuristicOne() {
         //só verificamos loops até seis movimentos
         //ou seja, comparamos os seis primeiros com os seis últimos
         //logo quando atingimos mais de 12 movimentos podemos zerar o array
-        if (lastMove.length >= 13) lastMove = [];
+        if (lastMove.length >= 13) {
+            const aux = lastMove.pop();
+            lastMove = [];
+            lastMove.push(aux);
+        }
 
         moveSquare(best.y, best.x);
+        console.log(lastMove);
 
         //esperando movimento
         await delay(700);
@@ -165,13 +175,17 @@ function getBestChildTwo(neighbors) {
 
     //para cada vizinho do nó atual
     for (n in neighbors) {
-        //pegamos os vizinhos desse nó caso ele tenha sido movido 
-        let neighborsTwo = getNeighbors({ 'y': neighbors[n].y, 'x': neighbors[n].x });
 
         //trocando peças primeiro nivel
         const currentSquareFirst = copyMatriz[neighbors[n].y][neighbors[n].x];
         copyMatriz[y][x] = currentSquareFirst;
         copyMatriz[neighbors[n].y][neighbors[n].x] = 9;
+
+        console.log(currentSquareFirst)
+
+        //pegamos os vizinhos do nó n
+        let neighborsTwo = getNeighbors({ 'y': neighbors[n].y, 'x': neighbors[n].x });
+
 
         //Percorre cada joagada possível no segundo nivel
         for (n2 in neighborsTwo) {
@@ -181,6 +195,8 @@ function getBestChildTwo(neighbors) {
             const currentSquareSecond = copyMatriz[neighborsTwo[n2].y][neighborsTwo[n2].x];
             copyMatriz[neighbors[n].y][neighbors[n].x] = currentSquareSecond;
             copyMatriz[neighborsTwo[n2].y][neighborsTwo[n2].x] = 9;
+
+            if (currentSquareFirst === currentSquareSecond) continue;
 
             // Soma da diferença de cada quadrado com sua posição final
             for (i = 0; i < 3; i++) {
@@ -200,7 +216,7 @@ function getBestChildTwo(neighbors) {
             copyMatriz[neighborsTwo[n2].y][neighborsTwo[n2].x] = currentSquareSecond;
         }
 
-        //destrocando peças
+        //destrocando peças primeiro nível
         copyMatriz[y][x] = 9;
         copyMatriz[neighbors[n].y][neighbors[n].x] = currentSquareFirst;
     }
@@ -245,7 +261,11 @@ async function heuristicTwo() {
             lastMove.push(matriz[best.y][best.x]);
         }
 
-        if (lastMove.length >= 13) lastMove = [];
+        if (lastMove.length >= 13) {
+            const aux = lastMove.pop();
+            lastMove = [];
+            lastMove.push(aux);
+        }
 
         moveSquare(best.y, best.x);
 
@@ -307,7 +327,7 @@ function getBestChildP(neighbors) {
             copyMatriz[neighborsTwo[n2].y][neighborsTwo[n2].x] = currentSquareSecond;
         }
 
-        //destrocando peças
+        //destrocando peças primeiro nível
         copyMatriz[y][x] = 9;
         copyMatriz[neighbors[n].y][neighbors[n].x] = currentSquareFirst;
     }
@@ -352,7 +372,11 @@ async function heuristicP() {
             lastMove.push(matriz[best.y][best.x]);
         }
 
-        if (lastMove.length >= 13) lastMove = [];
+        if (lastMove.length >= 13) {
+            const aux = lastMove.pop();
+            lastMove = [];
+            lastMove.push(aux);
+        }
 
         moveSquare(best.y, best.x);
 
@@ -404,8 +428,6 @@ function loop() {
 
     if (lastMove.length > 1
         && lastMove[lastMove.length - 1] === lastMove[lastMove.length - 2]) return true;
-
-    if (lastMove.length < 4) return false;
 
     let subMovs1;
     let subMovs2;
@@ -591,6 +613,8 @@ function init() {
     matrizSquares = [[], [], []];
 
     positionSquares = [[], [], []];
+
+    lastMove = [];
 
     y = 2; //terceira linha 
     x = 2; //terceira coluna
