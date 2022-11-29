@@ -28,7 +28,7 @@ heuristicPButton.addEventListener("click", async () => {
 let lastMove = [];
 
 //matriz para calcular heuristicas
-// let matriz;
+let matriz;
 
 //matriz para acessar os quadradinhos do tabuleiro
 let matrizSquares;
@@ -146,7 +146,6 @@ async function heuristicOne() {
         }
 
         moveSquare(best.y, best.x);
-        console.log(lastMove);
 
         //esperando movimento
         await delay(700);
@@ -180,8 +179,6 @@ function getBestChildTwo(neighbors) {
         const currentSquareFirst = copyMatriz[neighbors[n].y][neighbors[n].x];
         copyMatriz[y][x] = currentSquareFirst;
         copyMatriz[neighbors[n].y][neighbors[n].x] = 9;
-
-        console.log(currentSquareFirst)
 
         //pegamos os vizinhos do nó n
         let neighborsTwo = getNeighbors({ 'y': neighbors[n].y, 'x': neighbors[n].x });
